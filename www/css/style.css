@@ -1,0 +1,10 @@
+.circle {
+	stroke : #fff;
+	stroke-width : 1px;
+}
+
+g text {
+  font: 10px sans-serif;
+  pointer-events: none;
+  text-anchor: middle;
+}
