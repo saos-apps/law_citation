@@ -4,7 +4,8 @@ library(shiny)
 shinyServer(function(input, output) {
   
   output$visualisation <- reactive({
-    judgements <- search_judgments(all = input$query)
-    judgements
+    judgments <- search_judgments(all = input$query)
+    judgments <- get_judgments(judgments)
+    judgments
   })
 })

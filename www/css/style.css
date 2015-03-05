@@ -3,6 +3,16 @@
 	stroke-width : 1px;
 }
 
+.link {
+	stroke : #6E6E6E;
+	stroke-width : 1px;
+	stroke-opacity : 0.5;
+}
+
+.title {
+	font-weight: bold;
+}
+
 g text {
   font: 10px sans-serif;
   pointer-events: none;

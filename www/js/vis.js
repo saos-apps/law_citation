@@ -7,12 +7,11 @@
 		},
 		
 		renderValue: function(el, data) {
-			nodes = getNodes(data);
+			var processedData = getNodes(data);
+			var nodes = processedData.nodes;
+			var links = processedData.links;
 			var nodeRadius = 10;
 
-			var links = [
-					{ source: 0, target: 1 }
-			];
 			fillTooltip(data);
 			drawSvg(nodes, links, nodeRadius);
 
@@ -21,6 +20,7 @@
 
 	function getNodes(data) {
 		nodes = [];
+		links = [];
 		data.forEach(function(judgement) {
 			if (judgement.courtCases)
 				judgement.courtCases.forEach(function(courtCase){
@@ -30,17 +30,85 @@
 							y : 0, 
 							title 	: courtCase.caseNumber,
 							href 	: judgement.href,
-							type 	: 'judgement'
+							id		: judgement.id,
+							type 	: 'judgement'							
+						});
+					if (judgement.referencedRegulations)
+						judgement.referencedRegulations.forEach(function (referencedRegulation) {
+							var regulationIndex = findRegulation(nodes, referencedRegulation);
+							if (regulationIndex < 0) {
+								nodes.push({
+									x : 0,
+									y : 0,
+									title 			: referencedRegulation.journalTitle,
+									journalEntry 	: referencedRegulation.journalEntry,
+									journalNo 		: referencedRegulation.journalNo,
+									journalYear 	: referencedRegulation.journalYear,
+									id				: createRegulationId(referencedRegulation),
+									type 			: 'regulation'
+								});
+
+								links.push({ 
+									source : findJudgement(nodes, judgement.id), 
+									target : (nodes.length -1) 
+								});
+							}
+							else
+								links.push({ 
+									source : findJudgement(nodes, judgement.id), 
+									target : regulationIndex
+								});
 						});
 				});
 		});
-		return nodes;
+		var obj = {};
+		obj.nodes = nodes;
+		obj.links = links;
+		return obj;
+	}
+
+	function createRegulationId(regulation) {
+		var id = regulation.journalEntry.toString();
+		id += regulation.journalNo.toString();
+		id += regulation.journalYear.toString();
+		return Number(id);
+	}
+
+	function findRegulation(nodes, referencedRegulation) {
+		var result = -1;
+		for (var i = 0; i < nodes.length; i++) {
+			if (nodes[i].type === 'regulation' &&
+				nodes[i].id === createRegulationId(referencedRegulation)) {
+
+				result = i;
+				break;
+			}
+		}
+		return result;
+	}
+
+	function findJudgement(nodes, judgementId) {
+		var result = -1;
+		for (var i = 0; i < nodes.length; i++) {
+			if (nodes[i].type === 'judgement' &&
+				nodes[i].id === judgementId) {
+
+				result = i;
+				break;
+			}
+		}
+		return result;
 	}
 
 	function drawSvg(nodesData, links, nodeRadius) {
 		var margin = 10;
 		var width = $("#visualisation").width();
 		var height = $(window).height() - $("#menuContent").height() - margin;
+
+		var svg = d3.select('#visualisation').select("svg");
+	  	svg.remove();
+	  
+	  	$('#visualisation').html("");
 
 		var svg = d3.select('#visualisation').append('svg')
 			.attr('width', width)
@@ -49,10 +117,10 @@
 
 		var background = svg.append('svg:g');
 			
-			background.append('svg:rect')
-		        .attr('width', width)
-		        .attr('height', height)
-		        .attr('fill', 'white');
+		background.append('svg:rect')
+	        .attr('width', width)
+	        .attr('height', height)
+	        .attr('fill', 'white');
 
 		var force = d3.layout.force()
 			.size([width, height])
@@ -71,7 +139,7 @@
 
 		var node = g.append('circle')
 			.attr('class', 'circle')
-			.attr('r', nodeRadius)
+			.attr('r', radius)
 			.style('fill', color);
 
 		var hyperlinks = g.append('a')
@@ -116,6 +184,15 @@
 			return 'green';
 	}
 
+	function radius(d) {
+		if (d.type === 'judgement')
+			return 3;
+		if (d.type === 'regulation')
+			return 5;
+		else
+			return 1;
+	}
+
 	function fillTooltip(data) {
 		$('#judgements').html(judgementTable(data));
 	}
@@ -123,8 +200,13 @@
 	function judgementTable(data) {
 		var table = '<table>';
 		data.forEach(function(judgement) {
-			table += judgement.title;
-		})
+			if (judgement.courtCases)
+				judgement.courtCases.forEach(function(courtCase) {
+					table += '<tr><td class = "title" ><a href="' + judgement.href + '">';
+					table += courtCase.caseNumber;
+					table += '</a></td></tr>';
+				});
+		});
 		table += '</table>';
 		return table;
 	}
