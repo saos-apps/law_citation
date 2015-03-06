@@ -127,8 +127,13 @@
 			.nodes(nodesData)
 			.links(links)
 			.linkDistance(80)
-			.charge(-15)
+			.charge(-100)
 			.gravity(0.05);
+
+		var link = background.selectAll('.link')
+			.data(links)
+			.enter().append('line')
+			.attr('class', 'link');
 
 		var nodes = background.selectAll("g").data(nodesData);
 
@@ -140,26 +145,24 @@
 		var node = g.append('circle')
 			.attr('class', 'circle')
 			.attr('r', radius)
-			.style('fill', color);
+			.style('fill', color)
+			.on('mouseover', highlightNode)
+			.on('mouseout', dehighlightNode);
 
 		var hyperlinks = g.append('a')
 			.attr('xlink:href', function(d) { return d.href;});
 
 		var titles = hyperlinks.append('text')
-			.text(function(d) {	return d.title; });
+			.text(function(d) {	return d.title; })
+			.attr('fill', color);
 
-		var link = background.selectAll('.link')
-			.data(links)
-			.enter().append('line')
-			.attr('class', 'link');
-
-		/*var zoom = d3.behavior.zoom()
+		var zoom = d3.behavior.zoom()
 			.scaleExtent([0.5, 5])
 			.on("zoom",function() {
 				background.attr("transform", "translate(" +  zoom.translate() + ")scale(" + zoom.scale() + ")");
 			});
 
-		background.call(zoom);*/
+		background.call(zoom);
 
 		force.on('tick', function() {
 			g
@@ -177,9 +180,9 @@
 
 	function color(d) {
 		if (d.type === 'judgement')
-			return 'steelblue';
+			return '#0B6181';
 		if (d.type === 'regulation')
-			return 'red';
+			return '#8D2222';
 		else
 			return 'green';
 	}
@@ -191,6 +194,20 @@
 			return 5;
 		else
 			return 1;
+	}
+
+	function highlightNode(d) {
+		d3.select(this)
+			.attr('r', 10)		
+			.style('fill', 'white')
+			.style('stroke', '#000');
+	}
+
+	function dehighlightNode(d) {
+		d3.select(this)
+			.attr('r', radius)		
+			.style('fill', color)
+			.style('stroke', 'white');	
 	}
 
 	function fillTooltip(data) {

@@ -18,14 +18,15 @@ shinyUI(fluidPage(
     ),
   # d3 visualisation
   fluidRow(  id = "visContent",
-    column(8,
+    column(12,
       d3_visualisation(outputId = "visualisation")
-      ),
-    column(4,
-      h3("tbd"),
-      fluidRow(id = "judgements"),
-      fluidRow(id = "regulations")
-    )
+      )
+    # ,
+   # column(4,
+  #    h3("tbd"),
+  #    fluidRow(id = "judgements"),
+  #    fluidRow(id = "regulations")
+  #  )
   ),
 
   # css and js
