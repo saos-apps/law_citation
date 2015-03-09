@@ -8,9 +8,14 @@ d3_visualisation <- function (outputId)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
+  fluidRow( id = "progressStatus",
+    column(12,
+           textOutput("console")
+           )
+    ),
   fluidRow( id = "menuContent",
     column(8,
-      textInput(inputId = "query", label = h3("Wyszukaj frazę"), value = "alimenty")
+      textInput(inputId = "query", label = h3("Wyszukaj orzeczenia"), value = "tulipany")
       ),
     column(4,
       titlePanel("Law citation network")

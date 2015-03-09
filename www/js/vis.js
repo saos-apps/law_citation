@@ -1,5 +1,6 @@
 
 	var networkOutputBinding = new Shiny.OutputBinding();
+	var neighbours = [];
 	$.extend(networkOutputBinding, {
 
 		find: function(scope) {
@@ -48,16 +49,23 @@
 									type 			: 'regulation'
 								});
 
+								var source = findJudgement(nodes, judgement.id);
+								var target = (nodes.length -1);
 								links.push({ 
-									source : findJudgement(nodes, judgement.id), 
-									target : (nodes.length -1) 
+									source : source, 
+									target : target
 								});
+								insertNeighbour(source, target);
 							}
-							else
+							else {
+								var source = findJudgement(nodes, judgement.id);
+								var target = regulationIndex;
 								links.push({ 
-									source : findJudgement(nodes, judgement.id), 
-									target : regulationIndex
+									source : source, 
+									target : target
 								});
+								insertNeighbour(source, target);
+							}
 						});
 				});
 		});
@@ -65,6 +73,20 @@
 		obj.nodes = nodes;
 		obj.links = links;
 		return obj;
+	}
+
+	function insertNeighbour(source, target) {
+		if (neighbours[source]) neighbours[source].push(target);
+		else {
+			neighbours[source] = [];
+			neighbours[source].push(target);
+		}
+
+		if (neighbours[target]) neighbours[target].push(source);
+		else {
+			neighbours[target] = [];
+			neighbours[target].push(source);
+		}
 	}
 
 	function createRegulationId(regulation) {
@@ -106,9 +128,9 @@
 		var height = $(window).height() - $("#menuContent").height() - margin;
 
 		var svg = d3.select('#visualisation').select("svg");
-	  	svg.remove();
+		svg.remove();
 	  
-	  	$('#visualisation').html("");
+		$('#visualisation').html("");
 
 		var svg = d3.select('#visualisation').append('svg')
 			.attr('width', width)
@@ -118,9 +140,9 @@
 		var background = svg.append('svg:g');
 			
 		background.append('svg:rect')
-	        .attr('width', width)
-	        .attr('height', height)
-	        .attr('fill', 'white');
+			.attr('width', width)
+			.attr('height', height)
+			.attr('fill', 'white');
 
 		var force = d3.layout.force()
 			.size([width, height])
@@ -128,7 +150,7 @@
 			.links(links)
 			.linkDistance(80)
 			.charge(-100)
-			.gravity(0.05);
+			.gravity(0.2);
 
 		var link = background.selectAll('.link')
 			.data(links)
@@ -153,20 +175,26 @@
 			.attr('xlink:href', function(d) { return d.href;});
 
 		var titles = hyperlinks.append('text')
-			.text(function(d) {	return d.title; })
+			//.text(function(d) {	return d.title; })
 			.attr('fill', color);
 
-		var zoom = d3.behavior.zoom()
+		/*var zoom = d3.behavior.zoom()
 			.scaleExtent([0.5, 5])
 			.on("zoom",function() {
 				background.attr("transform", "translate(" +  zoom.translate() + ")scale(" + zoom.scale() + ")");
 			});
 
-		background.call(zoom);
+		background.call(zoom);*/
 
-		force.on('tick', function() {
+		force.on('tick', function(d) {
+			var k = 10 * d.alpha;
+			g.forEach(function(d) {
+				d.y += (d.type === 'judgement') ? k : -k;
+				d.x += (d.type === 'judgement') ? k : -k;
+			});
+
 			g
-				.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });  
+				.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; }); 
 
 			link.attr('x1', function(d) { return d.source.x; })
 				.attr('y1', function(d) { return d.source.y; })
@@ -180,34 +208,46 @@
 
 	function color(d) {
 		if (d.type === 'judgement')
-			return '#0B6181';
+			return '#ff7f0e';
 		if (d.type === 'regulation')
-			return '#8D2222';
+			return '#bcbd22';
 		else
 			return 'green';
 	}
 
 	function radius(d) {
 		if (d.type === 'judgement')
-			return 3;
-		if (d.type === 'regulation')
 			return 5;
+		if (d.type === 'regulation')
+			return 7;
 		else
 			return 1;
 	}
 
 	function highlightNode(d) {
+		var circle = d3.selectAll("circle");
+		var selectedIndex = d.index;
+		circle
+			.transition()
+			.style('fill', function(d) {
+				return neighbours[selectedIndex] && neighbours[selectedIndex].indexOf(d.index) > -1 ? 
+				'#c5b0d5' : '#6E6E6E';
+			})
+			.attr('r', function(d) {
+				return neighbours[selectedIndex] && neighbours[selectedIndex].indexOf(d.index) > -1 ? 
+				10 : radius(d);
+			});
+			
 		d3.select(this)
+			.transition()
 			.attr('r', 10)		
-			.style('fill', 'white')
-			.style('stroke', '#000');
+			.style('fill', '#9467bd')
 	}
 
 	function dehighlightNode(d) {
-		d3.select(this)
-			.attr('r', radius)		
+		d3.selectAll('circle')
 			.style('fill', color)
-			.style('stroke', 'white');	
+			.attr('r', radius);
 	}
 
 	function fillTooltip(data) {
