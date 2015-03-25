@@ -26,15 +26,7 @@
 			if (judgement.courtCases)
 				judgement.courtCases.forEach(function(courtCase){
 					if (courtCase.caseNumber)
-						nodes.push({
-							x : 0, 
-							y : 0, 
-							title 	: courtCase.caseNumber,
-							href 	: judgement.href,
-							id		: judgement.id,
-							type 	: 'judgement',
-							clicked 		: false
-						});
+						nodes.push(judgementToNode(judgement, courtCase.caseNumber));
 					if (judgement.referencedRegulations)
 						judgement.referencedRegulations.forEach(function (referencedRegulation) {
 							var regulationIndex = findRegulation(nodes, referencedRegulation);
@@ -67,11 +59,27 @@
 		return obj;
 	}
 
+	function judgementToNode(judgement, caseNumber) {
+		return {
+					x : 0, 
+					y : 0, 
+					title 	: caseNumber,
+					href 	: judgement.href,
+					id		: judgement.id,
+					judgementDate 	: judgement.judgmentDate,
+					judges 			: judgement.judges,
+					courtReporters 	: judgement.courtReporters,
+					division		: judgement.division,
+					type 	: 'judgement',
+					clicked 		: false
+				};
+	}
+
 	function referencedRegulationToNode(referencedRegulation) {
 		return {
 					x : 0,
 					y : 0,
-					title 			: referencedRegulation.journalTitle,
+					title 			: referencedRegulation.text,
 					journalEntry 	: referencedRegulation.journalEntry,
 					journalNo 		: referencedRegulation.journalNo,
 					journalYear 	: referencedRegulation.journalYear,
@@ -232,16 +240,13 @@
 	}
 
 	function clickNode(d) {
-		console.log("clickNode")
 		if (otherNodesSelected(d.index)) return;
 
 		if (d.clicked === false || d.clicked === undefined) {
-			console.log("clickNode : highlightNode")
 			d.clicked = true;
 			highlightNode(d);
 		}
 		else if (d.clicked === true) {
-			console.log("clickNode : highlightNode")
 			d.clicked = false;
 			dehighlightNode(d);
 		}
@@ -264,14 +269,12 @@
 	}
 
 	function highlightNode(d) {
-		console.log("highlightNode")
 		var circle = d3.selectAll("circle");
+		var line = d3.selectAll("line");
 		var selectedIndex = d.index;
 		var selectedType = d.type;
 
 		if (otherNodesSelected(selectedIndex)) return;
-
-		console.log("highlightNode : running")
 
 		highlightedInfo(d);
 
@@ -298,16 +301,29 @@
 					return neighbours[selectedIndex] && neighbours[selectedIndex].indexOf(d.index) > -1 &&
 							d.type !== selectedType ? 10 : radius(d);
 			});
+
+		line
+			.transition()
+			.style('stroke-opacity', function (d) {
+				if (d.source.index === selectedIndex || d.target.index === selectedIndex)
+					return 1;
+				else return 0.3;
+			})
+			.style('stroke-width', function (d) {
+				if (d.source.index === selectedIndex || d.target.index === selectedIndex)
+					return 2;
+				else return 1;
+			});
+
 	}
 
 	function dehighlightNode(d) {
-		console.log("dehighlightNode")
 		if (d.clicked || otherNodesSelected(d.index)) return; 
 
 		var circle = d3.selectAll('circle');
+		var line = d3.selectAll('line');
 		var selectedIndex = d.index;
 
-		console.log("dehighlightNode : running")
 		clearHighlightedInfo();
 
 		circle
@@ -315,6 +331,11 @@
 			.style('fill', color)
 			.style('stroke-opacity', 1)
 			.attr('r', radius);
+
+		line
+			.transition()
+			.style('stroke-width', 1)
+			.style('stroke-opacity', 0.3);
 	}
 
 	function highlightedInfo(d) {
@@ -333,7 +354,35 @@
 	}
 
 	function judgementInfo(d) {
-		var text = '<p><a href="' + d.href + '">' + d.title + '</a></p>';
+		var text = '<p><a href="https://saos-test.icm.edu.pl/judgments/' + d.id + '"><h5>' + d.title + '</h5></a></p>';
+		if (d.judgementDate)
+			text += '<p><span class="label-title">Data orzeczenia:</span> ' + d.judgementDate + '</p>';
+		if (d.division && d.division.court && d.division.court.name)
+			text += '<p><span class="label-title">Sąd:</span> ' + d.division.court.name + '</p>';
+		if (d.division && d.division.name)
+			text += '<p><span class="label-title">Wydział:</span> ' + d.division.name + '</p>';
+		if (d.judges && d.judges.length !== 0)
+			text += '<p><span class="label-title">Skład sędziowski:</span> ' + judgesToList(d.judges) + '</p>';
+		if (d.courtReporters && d.courtReporters.length !== 0)
+			text += '<p><span class="label-title">Protokolanci:</span> ' + reportersToList(d.courtReporters) + '</p>';			
+		return text;
+	}
+
+	function judgesToList(judges) {
+		var text = '';
+		for (var i = 0; i < judges.length; i++) {
+			text += judges[i].name;
+			if (i !== judges.length - 1) text += ', ';
+		}
+		return text;
+	}
+
+	function reportersToList(reporters) {
+		var text = '';
+		for (var i = 0; i < reporters.length; i++) {
+			text += reporters[i];
+			if (i !== reporters.length - 1) text += ', ';
+		}
 		return text;
 	}
 
