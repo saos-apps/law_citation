@@ -8,23 +8,29 @@ d3_visualisation <- function (outputId)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
-  fluidRow( id = "progressStatus",
-    column(12,
-           textOutput("console")
-           )
-    ),
-  fluidRow( id = "menuContent",
-    column(8,
-      textInput(inputId = "query", label = h3("Wyszukaj orzeczenia"), value = "tulipany")
-      ),
-    column(4,
-      titlePanel("Law citation network")
-      )
-    ),
   # d3 visualisation
-  fluidRow(  id = "visContent",
-    column(12,
+  fluidRow(id = "visContent",
+    column(9,
       d3_visualisation(outputId = "visualisation")
+      ),
+    column(3,
+      fluidRow(id = "progressBarRow"),
+      fluidRow(id = "menu",
+              textInput(inputId = "textQuery", label = h4("Wyszukaj orzeczenia"), value = "tulipany"),
+              actionButton(inputId = "searchQuery", label = "Wyszukaj")
+      ),
+      fluidRow(id = "legend",
+              h4("Legenda"),
+              div(id = "legendTable",
+                  HTML('<p><span style="color:#bcbd22">&#11044</span> Akty prawne<p>'),
+                  HTML('<p><span style="color:#ff7f0e">&#11044</span> Orzeczenia</p>')
+              )
+      ),
+      fluidRow(id = "sidebarPanel",
+          h4("Szczegółowe informacje"),
+          div(id = "highlightedNode"),
+          div(id = "allNodes")
+          )
       )
     # ,
    # column(4,

@@ -32,22 +32,14 @@
 							title 	: courtCase.caseNumber,
 							href 	: judgement.href,
 							id		: judgement.id,
-							type 	: 'judgement'							
+							type 	: 'judgement',
+							clicked 		: false
 						});
 					if (judgement.referencedRegulations)
 						judgement.referencedRegulations.forEach(function (referencedRegulation) {
 							var regulationIndex = findRegulation(nodes, referencedRegulation);
 							if (regulationIndex < 0) {
-								nodes.push({
-									x : 0,
-									y : 0,
-									title 			: referencedRegulation.journalTitle,
-									journalEntry 	: referencedRegulation.journalEntry,
-									journalNo 		: referencedRegulation.journalNo,
-									journalYear 	: referencedRegulation.journalYear,
-									id				: createRegulationId(referencedRegulation),
-									type 			: 'regulation'
-								});
+								nodes.push(referencedRegulationToNode(referencedRegulation));
 
 								var source = findJudgement(nodes, judgement.id);
 								var target = (nodes.length -1);
@@ -73,6 +65,20 @@
 		obj.nodes = nodes;
 		obj.links = links;
 		return obj;
+	}
+
+	function referencedRegulationToNode(referencedRegulation) {
+		return {
+					x : 0,
+					y : 0,
+					title 			: referencedRegulation.journalTitle,
+					journalEntry 	: referencedRegulation.journalEntry,
+					journalNo 		: referencedRegulation.journalNo,
+					journalYear 	: referencedRegulation.journalYear,
+					id				: createRegulationId(referencedRegulation),
+					type 			: 'regulation',
+					clicked 		: false
+				};
 	}
 
 	function insertNeighbour(source, target) {
@@ -169,7 +175,8 @@
 			.attr('r', radius)
 			.style('fill', color)
 			.on('mouseover', highlightNode)
-			.on('mouseout', dehighlightNode);
+			.on('mouseout', dehighlightNode)
+			.on('click', clickNode);
 
 		var hyperlinks = g.append('a')
 			.attr('xlink:href', function(d) { return d.href;});
@@ -187,7 +194,7 @@
 		background.call(zoom);*/
 
 		force.on('tick', function(d) {
-			var k = 10 * d.alpha;
+			var k = 100 * d.alpha;
 			g.forEach(function(d) {
 				d.y += (d.type === 'judgement') ? k : -k;
 				d.x += (d.type === 'judgement') ? k : -k;
@@ -224,34 +231,114 @@
 			return 1;
 	}
 
+	function clickNode(d) {
+		console.log("clickNode")
+		if (otherNodesSelected(d.index)) return;
+
+		if (d.clicked === false || d.clicked === undefined) {
+			console.log("clickNode : highlightNode")
+			d.clicked = true;
+			highlightNode(d);
+		}
+		else if (d.clicked === true) {
+			console.log("clickNode : highlightNode")
+			d.clicked = false;
+			dehighlightNode(d);
+		}
+	}
+
+	function otherNodesSelected(selectedIndex) {
+		var circle = d3.selectAll("circle");
+		var otherNodeClicked = false;
+
+		circle.each(function(d) {
+			if (d.clicked === false) 
+				return true;
+			else if (d.clicked === true && d.index !== selectedIndex) {
+				otherNodeClicked = true;
+				return false;
+			}
+		});
+
+		return otherNodeClicked;
+	}
+
 	function highlightNode(d) {
+		console.log("highlightNode")
 		var circle = d3.selectAll("circle");
 		var selectedIndex = d.index;
+		var selectedType = d.type;
+
+		if (otherNodesSelected(selectedIndex)) return;
+
+		console.log("highlightNode : running")
+
+		highlightedInfo(d);
+
 		circle
 			.transition()
+			.style('stroke-opacity', function (d) {
+				if (d.index === selectedIndex)
+					return 1;
+				else 
+					return neighbours[selectedIndex] && neighbours[selectedIndex].indexOf(d.index) > -1 &&
+							d.type !== selectedType ? 1 : 0.3;
+			})
 			.style('fill', function(d) {
-				return neighbours[selectedIndex] && neighbours[selectedIndex].indexOf(d.index) > -1 ? 
-				'#c5b0d5' : '#6E6E6E';
+				if (d.index === selectedIndex)
+					return color(d);
+				else 
+					return neighbours[selectedIndex] && neighbours[selectedIndex].indexOf(d.index) > -1 &&
+							d.type !== selectedType ? color(d) : '#F2F2F2';
 			})
 			.attr('r', function(d) {
-				return neighbours[selectedIndex] && neighbours[selectedIndex].indexOf(d.index) > -1 ? 
-				10 : radius(d);
+				if (d.index === selectedIndex) 
+					return d.clicked ? 15 : 10;
+				else
+					return neighbours[selectedIndex] && neighbours[selectedIndex].indexOf(d.index) > -1 &&
+							d.type !== selectedType ? 10 : radius(d);
 			});
-			
-		d3.select(this)
-			.transition()
-			.attr('r', 10)		
-			.style('fill', '#9467bd')
 	}
 
 	function dehighlightNode(d) {
-		d3.selectAll('circle')
+		console.log("dehighlightNode")
+		if (d.clicked || otherNodesSelected(d.index)) return; 
+
+		var circle = d3.selectAll('circle');
+		var selectedIndex = d.index;
+
+		console.log("dehighlightNode : running")
+		clearHighlightedInfo();
+
+		circle
+			.transition()
 			.style('fill', color)
+			.style('stroke-opacity', 1)
 			.attr('r', radius);
 	}
 
+	function highlightedInfo(d) {
+		var html = '';
+		if (d.type === 'regulation') html = regulationInfo(d);
+		else if (d.type === 'judgement') html = judgementInfo(d);
+		$('#highlightedNode').html(html);
+	}
+
+	function clearHighlightedInfo() {
+		$('#highlightedNode').html('');
+	}
+
+	function regulationInfo(d) {
+		return '<p>' + d.title + '</p>';
+	}
+
+	function judgementInfo(d) {
+		var text = '<p><a href="' + d.href + '">' + d.title + '</a></p>';
+		return text;
+	}
+
 	function fillTooltip(data) {
-		$('#judgements').html(judgementTable(data));
+		//$('#allNodes').html(judgementTable(data));
 	}
 
 	function judgementTable(data) {
