@@ -16,7 +16,32 @@ shinyServer(function(input, output, session) {
       Sys.sleep(0.5)
     }
     
-    judgments <- isolate(search_judgments(all = input$textQuery))
+    judgments <- isolate({ 
+        query <- input$textQuery
+        
+        if (is.null(input$courtType) || input$courtType == "ALL")
+          courtType <- NULL
+        else
+          courtType <- input$courtType
+        
+        if (is.null(input$judgmentType))
+          judgmentType <- NULL
+        else
+          judgmentType <- input$judgmentType
+        
+        if (is.null(input$dateRange)) {
+          judgmentDateFrom <- NULL
+          judgmentDateTo <- NULL
+        }
+        else {
+          judgmentDateFrom <- input$dateRange[1]
+          judgmentDateTo <- input$dateRange[2]
+        }
+        
+        search_judgments(all = input$textQuery, courtType = courtType, 
+                         judgmentType = judgmentType, judgmentDateTo = judgmentDateTo,
+                         judgmentDateFrom = judgmentDateFrom)
+      })
     judgmentsDetails <- get_judgments(judgments)
     
     judgmentsDetails

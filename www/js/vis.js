@@ -1,6 +1,7 @@
 
 	var networkOutputBinding = new Shiny.OutputBinding();
 	var neighbours = [];
+
 	$.extend(networkOutputBinding, {
 
 		find: function(scope) {
@@ -20,8 +21,9 @@
 	});
 
 	function getNodes(data) {
-		nodes = [];
-		links = [];
+		var nodes = [];
+		var links = [];
+		neighbours = [];
 		data.forEach(function(judgement) {
 			if (judgement.courtCases)
 				judgement.courtCases.forEach(function(courtCase){
@@ -79,7 +81,7 @@
 		return {
 					x : 0,
 					y : 0,
-					title 			: referencedRegulation.text,
+					title 			: referencedRegulation.journalTitle,
 					journalEntry 	: referencedRegulation.journalEntry,
 					journalNo 		: referencedRegulation.journalNo,
 					journalYear 	: referencedRegulation.journalYear,
@@ -137,6 +139,7 @@
 	}
 
 	function drawSvg(nodesData, links, nodeRadius) {
+
 		var margin = 10;
 		var width = $("#visualisation").width();
 		var height = $(window).height() - $("#menuContent").height() - margin;
@@ -276,6 +279,9 @@
 
 		if (otherNodesSelected(selectedIndex)) return;
 
+		if (d.type === 'regulation') console.log(d);
+		console.log(neighbours[selectedIndex]);
+
 		highlightedInfo(d);
 
 		circle
@@ -350,7 +356,10 @@
 	}
 
 	function regulationInfo(d) {
-		return '<p>' + d.title + '</p>';
+		var text =  '<p><a href="http://dziennikustaw.gov.pl/du/' + d.journalYear;
+		text += '/s/' + d.journalNo + '/' + d.journalEntry + '">';
+		text += d.title + '</a></p>';
+		return text;
 	}
 
 	function judgementInfo(d) {
